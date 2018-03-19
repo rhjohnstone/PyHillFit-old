@@ -26,15 +26,6 @@ def per_cent_block(conc, ic50, hill=1):
 
 class PyHillFit(object):
 
-    def scale_params_for_cmaes_fix_hill(self, params):
-        scaled_pic50 = params[0]**2 + self._pic50_lower_bound
-        return [scaled_pic50, 1.]
-        
-    def scale_params_for_cmaes_vary_hill(self, params):
-        scaled_pic50 = params[0]**2 + self._pic50_lower_bound
-        scaled_hill = params[1]**2  # Hill bounded below at 0
-        return [scaled_pic50, scaled_hill]
-
     def __init__(self, data_file, drug, channel, fix_hill=False, mcmc_iterations=100000, pic50_lower_bound=-3):
         all_data = pd.read_csv(data_file)
         self._data = all_data[(all_data["Compound"]==drug) & (all_data["Channel"]==channel)]
@@ -44,9 +35,15 @@ class PyHillFit(object):
         self.mcmc_iterations = mcmc_iterations
         self._pic50_lower_bound = pic50_lower_bound
         if fix_hill:
-            self.scale_params_for_cmaes = self.scale_params_for_cmaes_fix_hill
+            def scale_params_for_cmaes(params):
+                scaled_pic50 = params[0]**2 + pic50_lower_bound
+                return [scaled_pic50, 1.]
         else:
-            self.scale_params_for_cmaes = self.scale_params_for_cmaes_vary_hill
+            def scale_params_for_cmaes(params):
+                scaled_pic50 = params[0]**2 + pic50_lower_bound
+                scaled_hill = params[1]**2  # Hill bounded below at 0
+                return [scaled_pic50, scaled_hill]
+        self.scale_params_for_cmaes = scale_params_for_cmaes
 
     def sum_of_square_diffs(self, pic50, hill=1):
         model_blocks = per_cent_block(self._data["Dose"], pic50_to_ic50(pic50), hill)
