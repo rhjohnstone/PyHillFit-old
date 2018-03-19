@@ -12,7 +12,6 @@ import cma
 ####
 
 
-
 def pic50_to_ic50(pic50): # IC50 in uM
     return 10**(6-pic50)
 
