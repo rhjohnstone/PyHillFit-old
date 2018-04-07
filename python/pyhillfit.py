@@ -2,6 +2,8 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 plt.style.use('ggplot')
+#import seaborn as sns
+#sns.set()
 import cma
 
 
@@ -72,7 +74,7 @@ class PyHillFit(object):
         ax.set_xscale("log")
         pic50, hill = self._best_fit_params
         ax.plot(x, per_cent_block(x, pic50_to_ic50(pic50), hill), label="Best", lw=2)
-        ax.scatter(self._data["Dose"], self._data["Response"], label="Data", clip_on=False, zorder=10, s=20)
+        ax.plot(self._data["Dose"], self._data["Response"], "o", label="Data", clip_on=False, zorder=10, ms=5)
         ax.legend(loc="best")
         ax.set_xlabel("{} concentration ($\mu$M)".format(self._drug))
         ax.set_ylabel("% {} block".format(self._channel))
