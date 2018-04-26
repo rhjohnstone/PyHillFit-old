@@ -26,6 +26,10 @@ def per_cent_block(conc, ic50, hill=1):
     return 100. * ( 1. - 1./(1.+((1.*conc)/ic50)**hill) )
 
 
+def compute_best_sigma_analytic(sum_of_squares, num_data_pts):
+    return np.sqrt((1.*sum_of_squares)/num_data_pts)
+
+
 class PyHillFit(object):
 
     def __init__(self, data_file, drug, channel, fix_hill=False, mcmc_iterations=100000, pic50_lower_bound=-3):
@@ -37,10 +41,12 @@ class PyHillFit(object):
         self.mcmc_iterations = mcmc_iterations
         self._pic50_lower_bound = pic50_lower_bound
         if fix_hill:
+            self.num_params = 2  # pIC50 and sigma
             def scale_params_for_cmaes(params):
                 scaled_pic50 = params[0]**2 + pic50_lower_bound
                 return [scaled_pic50, 1.]
         else:
+            self.num_params = 3  # pIC50, Hill, and sigma
             def scale_params_for_cmaes(params):
                 scaled_pic50 = params[0]**2 + pic50_lower_bound
                 scaled_hill = params[1]**2  # Hill bounded below at 0
@@ -62,9 +68,11 @@ class PyHillFit(object):
             es.tell(X, [self.sum_of_square_diffs(*self.scale_params_for_cmaes(x)) for x in X])
             es.disp()
         res = es.result
-        self._best_fit_params = self.scale_params_for_cmaes(res[0])
+        best_sigma = compute_best_sigma_analytic(res[1], len(self._data["Response"]))
+        self._best_fit_params = np.concatenate((self.scale_params_for_cmaes(res[0]), [best_sigma]))
 
-    def plot_best_fit(self):
+    def plot_best_fit(self, plot_sigma=False):
+        #colours = plt.rcParams['axes.prop_cycle']
         fig = plt.figure(figsize=(4, 3))
         ax = fig.add_subplot(111)
         xmin_log10 = int(np.log10(self._data["Dose"].min()))-1
@@ -72,9 +80,13 @@ class PyHillFit(object):
         num_x_pts = 50
         x = np.logspace(xmin_log10, xmax_log10, num_x_pts)
         ax.set_xscale("log")
-        pic50, hill = self._best_fit_params
-        ax.plot(x, per_cent_block(x, pic50_to_ic50(pic50), hill), label="Best", lw=2)
-        ax.plot(self._data["Dose"], self._data["Response"], "o", label="Data", clip_on=False, zorder=10, ms=5)
+        pic50, hill, sigma = self._best_fit_params
+        block = per_cent_block(x, pic50_to_ic50(pic50), hill)
+        ax.plot(x, block, label="Best", lw=2, color="C1")
+        if plot_sigma:
+            ax.plot(x, block+2*sigma, "--", lw=2, color="C2", label=r"Best $\pm 2\sigma$")
+            ax.plot(x, block-2*sigma, "--", lw=2, color="C2")
+        ax.plot(self._data["Dose"], self._data["Response"], "o", label="Data", clip_on=False, zorder=10, ms=5, color="C0")
         ax.legend(loc="best")
         ax.set_xlabel("{} concentration ($\mu$M)".format(self._drug))
         ax.set_ylabel("% {} block".format(self._channel))
@@ -86,4 +98,9 @@ class PyHillFit(object):
             ax.set_title("Vary $pIC_{50}$ and $Hill$")
         fig.tight_layout()
         return fig
+    
+    def do_adaptive_mcmc(self, total_iterations=100000, thinning=5, burn_fraction=4):
+        saved_iterations = total_iterations/thinning + 1
+        self._chain = np.zeros((saved_iterations, self.num_params+1))  # extra column for log-target values
+        
 
