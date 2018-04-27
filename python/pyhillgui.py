@@ -137,11 +137,7 @@ class MyFirstGUI:
         
         self.best_m1_pic50, self.best_m2_pic50, self.best_m2_hill = None, None, None
         
-        self.m1_line_plotted = False
-        self.m1_line = None
-        
-        self.m2_line_plotted = False
-        self.m2_line = None
+
         
     def key(self, event):
         self.plot_data_button.config(font=default_font)
@@ -154,6 +150,12 @@ class MyFirstGUI:
         self.plot_m2_button.config(font=default_font)
         self.data = convert_strings_to_array(self.text.get("1.0", tk.END).rstrip())
         plot_data(*self.data.T)
+        
+        self.m1_line_plotted = False
+        self.m1_line = None
+        
+        self.m2_line_plotted = False
+        self.m2_line = None
         
         
     def do_best_fit_model_1(self):
