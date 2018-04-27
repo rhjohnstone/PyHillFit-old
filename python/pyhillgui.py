@@ -1,6 +1,14 @@
 # I should really abstract out / modularise the methods used here and in pyhillfit just so they're definitely exactly the same
-# Also this currently only works for varying pIC50 and Hill (i.e. not Hill fixed to 1)
 # The data in some_data.txt is from crumb_data.csv, just in a copy and paste-able format
+# This operates on a simple sum-of-squares score, no fancy "folded likelihood" like in my thesis,
+# therefore the data should ideally be raw, i.e. no capping at 0 or 100.
+
+### TO DO ###
+# 1. Drug and channel name entry boxes and update axis labels
+# 2. Add button to save figure (pdf/eps/png?)
+# 3. Display best-fit parameter values somewhere, should be easily exportable
+# 4. Display sum-of-squares score and/or BIC somewhere
+###
 
 import numpy as np
 import cma
